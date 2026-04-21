@@ -1952,15 +1952,15 @@ do
         return Toggle;
     end;
 
-    function Funcs:AddToggleWithColor(Idx, ColorIdx, Info)
+   function Funcs:AddToggleWithColor(Idx, Info)
     assert(Info.Text, 'AddToggleWithColor: Missing `Text` string.')
     assert(Info.Default ~= nil, 'AddToggleWithColor: Missing `Default` boolean.')
-    assert(Info.Color, 'AddToggleWithColor: Missing `Color` default value.')
+    assert(type(Info.Colors) == 'table' and #Info.Colors >= 1 and #Info.Colors <= 4, 
+        'AddToggleWithColor: `Colors` doit être une table de 1 à 4 éléments.')
 
     local Groupbox = self
     local Container = Groupbox.Container
 
-    -- Toggle outer box
     local ToggleOuter = Library:Create('Frame', {
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderColor3 = Color3.new(0, 0, 0);
@@ -1985,9 +1985,8 @@ do
         BorderColor3 = 'OutlineColor';
     })
 
-    -- Label du toggle
     local ToggleLabel = Library:CreateLabel({
-        Size = UDim2.new(0, 216, 1, 0); 
+        Size = UDim2.new(0, 216, 1, 0);
         Position = UDim2.new(1, 6, 0, 0);
         TextSize = 14;
         Text = Info.Text;
@@ -1996,7 +1995,6 @@ do
         Parent = ToggleInner;
     })
 
-    -- Layout horizontal pour aligner label + color picker
     Library:Create('UIListLayout', {
         Padding = UDim.new(0, 4);
         FillDirection = Enum.FillDirection.Horizontal;
@@ -2005,7 +2003,6 @@ do
         Parent = ToggleLabel;
     })
 
-    -- Zone cliquable du toggle
     local ToggleRegion = Library:Create('Frame', {
         BackgroundTransparency = 1;
         Size = UDim2.new(0, 170, 1, 0);
@@ -2018,7 +2015,6 @@ do
         { BorderColor3 = 'Black' }
     )
 
-    -- Toggle object
     local Toggle = {
         Value = Info.Default or false;
         Type = 'Toggle';
@@ -2055,20 +2051,24 @@ do
 
     Toggle:Display()
 
-    -- On attache le TextLabel au toggle pour que AddColorPicker puisse s'y greffer
     Toggle.TextLabel = ToggleLabel
     Toggle.Container = Container
     setmetatable(Toggle, BaseAddons)
 
     Toggles[Idx] = Toggle
 
-    -- On appelle directement AddColorPicker sur le toggle (comme sur un label)
-    Toggle:AddColorPicker(ColorIdx, {
-        Default = Info.Color,
-        Title = Info.ColorTitle or Info.Text,
-        Transparency = Info.Transparency or nil,
-        Callback = Info.ColorCallback or function() end,
-    })
+    -- On ajoute chaque ColorPicker de la table Colors
+    for i, ColorInfo in next, Info.Colors do
+        assert(ColorInfo.Idx, 'AddToggleWithColor: Colors[' .. i .. '] manque `Idx`.')
+        assert(ColorInfo.Default, 'AddToggleWithColor: Colors[' .. i .. '] manque `Default`.')
+
+        Toggle:AddColorPicker(ColorInfo.Idx, {
+            Default = ColorInfo.Default,
+            Title = ColorInfo.Title or (Info.Text .. ' Color ' .. i),
+            Transparency = ColorInfo.Transparency or nil,
+            Callback = ColorInfo.Callback or function() end,
+        })
+    end
 
     if type(Info.Tooltip) == 'string' then
         Library:AddToolTip(Info.Tooltip, ToggleRegion)
